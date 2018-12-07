@@ -52,6 +52,7 @@ def render_template(template_name, **context):
 
 urls = ('/currtime', 'curr_time',
         '/selecttime', 'select_time',
+        ,'/addbid', 'add_bid'
         # TODO: add additional URLs here
         # first parameter => URL, second parameter => class name
         )
@@ -88,7 +89,13 @@ class select_time:
 
         selected_time = '%s-%s-%s %s:%s:%s' % (yyyy, MM, dd, HH, mm, ss)
         update_message = '(Hello, %s. Previously selected time was: %s.)' % (enter_name, selected_time)
-        # TODO: save the selected time as the current time in the database
+        try:
+            sqlitedb.setTime(selected_time)
+        except Exception as e:
+                print str(e)
+            
+        
+            # do something
 
         # Here, we assign `update_message' to `message', which means
         # we'll refer to it in our template as `message'
