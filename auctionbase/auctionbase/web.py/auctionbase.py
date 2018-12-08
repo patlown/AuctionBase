@@ -52,7 +52,8 @@ def render_template(template_name, **context):
 
 urls = ('/currtime', 'curr_time',
         '/selecttime', 'select_time',
-        ,'/addbid', 'add_bid'
+        '/add_bid', 'add_bid',
+        '/search','search'
         # TODO: add additional URLs here
         # first parameter => URL, second parameter => class name
         )
@@ -100,6 +101,42 @@ class select_time:
         # Here, we assign `update_message' to `message', which means
         # we'll refer to it in our template as `message'
         return render_template('select_time.html', message = update_message)
+
+
+class add_bid:
+    #another get request, renders add_bid.html on '/addbid' URL
+    def GET(self):
+            return render_template('add_bid.html')
+
+    def POST(self):
+        post_params = web.input()
+        price = post_params['price']
+        itemID = post_params['itemID']
+        userID = post_params['userID']
+        # TODO: this currently does not give much information on the error, we could add additional queries to check if the user exists, if the item exists, if the bid is closed
+        # IDK if that is necessary, this currently works correctly otherwise
+        if sqlitedb.addBid(price,itemID,userID):
+            update_message = '(Thank you %s,Your bid of %s was offered on Item %s)' % (userID,price,itemID)
+        else:
+            update_message = 'Invalid Bid, Either UserID does not exist, ItemID does not exist, ItemID is closed or the price offered was less than current bid'
+
+        return render_template('add_bid.html',message = update_message)    
+
+class search:
+    def GET(self):
+        return render_template('search.html')
+
+
+    def POST(self):
+        post_params = web.input()
+        itemID = post_params['itemID']
+        userID = post_params['userID']
+        minPrice = post_params['minPrice']
+        maxPrice = post_params['maxPrice']
+        status = post_params['status']
+
+        print post_params
+        
 
 ###########################################################################################
 ##########################DO NOT CHANGE ANYTHING BELOW THIS LINE!##########################

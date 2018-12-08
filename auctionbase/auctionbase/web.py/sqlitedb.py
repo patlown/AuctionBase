@@ -47,11 +47,23 @@ def getItemById(item_id):
     result = query(query_string, {'itemID': item_id})
     return result[0]
 
-
+#sets the time to a time specified by the user on the /selecttime page
+# will not run if the time selected is before the current time
 def setTime(time):
     query_string = 'update CurrentTime set Time = $t'
     result = db.query(query_string, {'t': time})
-    
+
+def addBid(price,itemID,userID):
+    query_string = 'Insert into Bids values ($itemID,$userID,$price,$time)'
+    t = transaction()
+    try:
+        query(query_string,{'itemID':itemID, 'userID':userID, 'price':price, 'time': getTime()})
+        result = True
+    except Exception as e:
+        t.rollback()
+        print str(e)
+        result = False
+    return result
 
 # wrapper method around web.py's db.query method
 # check out http://webpy.org/cookbook/query for more info
