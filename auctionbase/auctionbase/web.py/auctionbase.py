@@ -24,6 +24,9 @@ from datetime import datetime
 def string_to_time(date_str):
     return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
 
+def string_date_to_sql(str):
+    return '\''+str+'\''
+
 # helper method to render a template in the templates/ directory
 #
 # `template_name': name of template file to render
@@ -202,7 +205,9 @@ def formatSearch(itemID, userID, minPrice, maxPrice,status,searchVars):
                 queryBuilder['WHERE'].append('Items.Currently <= $maxPrice')
             elif "status" == key:
                 #the status of our bid is determined by the current time of the system
-                time = string_to_time(sqlitedb.getTime())
+                #convert the current time to a string date that sql can evaluate
+                time = string_date_to_sql(sqlitedb.getTime())
+
                 #again, we will need Items table if it hasn't been added already
                 if "Items" not in queryBuilder['FROM']:
                     queryBuilder['FROM'].append('Items')
@@ -210,7 +215,7 @@ def formatSearch(itemID, userID, minPrice, maxPrice,status,searchVars):
                 #to the input options in the form
                 if value == "open":
                     #to be open, the time must be before it ends, after it starts, and currently must be less than the buy_price
-                    queryBuilder['WHERE'].append('Items.Started<' + time + 'AND Items.Ends>'+ time + 'AND Currently < Buy_Price')
+                    queryBuilder['WHERE'].append('Items.Started<' + time + ' AND Items.Ends>'+ time + 'AND Currently < Buy_Price')
                 elif value == "close":
                     #to be closed, must be after ends or currently >= buy price
                     queryBuilder['WHERE'].append('Items.Ends < ' + time + 'OR Currently >= Buy_Price')
