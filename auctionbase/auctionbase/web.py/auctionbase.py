@@ -58,6 +58,9 @@ urls = ('/currtime', 'curr_time',
         # first parameter => URL, second parameter => class name
         )
 
+
+
+
 class curr_time:
     # A simple GET request, to '/currtime'
     #
@@ -84,7 +87,7 @@ class select_time:
         yyyy = post_params['yyyy']
         HH = post_params['HH']
         mm = post_params['mm']
-        ss = post_params['ss'];
+        ss = post_params['ss']
         enter_name = post_params['entername']
 
 
@@ -135,9 +138,128 @@ class search:
         maxPrice = post_params['maxPrice']
         status = post_params['status']
 
-        print post_params
+        #prepare query
+        #build dict for variables that will be used when querying
+        searchVars = {}
+        query_string = formatSearch(itemID,userID,minPrice,maxPrice,status,searchVars)
+        result = sqlitedb.search(query_string,searchVars)
+
+        return render_template('search.html',search_result = result, search_params = searchVars)
+
+        # print query_string
+
+
+
         
 
+        # print post_params
+
+#helper method for handling format of a search query
+def formatSearch(itemID, userID, minPrice, maxPrice,status,searchVars):
+
+    #build dict for storing and accessing user input
+    keys = {'itemID': itemID, 'userID': userID, 'minPrice':minPrice,'maxPrice':maxPrice, 'status':status}
+    
+    #query builder for adding keys to correct clause, will be used to build searchString
+    queryBuilder = {'SELECT':['DISTINCT','*'],'FROM':[],'WHERE':[]}
+    #will be used to pass to search function, built at end 
+    
+
+    #main loop: iterate through keys and add to appropriate slot in queryBuilder,
+    # once key has been added to queryBuilder, add the var to searchVars
+    for key,value in keys.iteritems():
+        #we may not have a value for the key in keys so we must check it
+        if value != "":
+            #logic for handling adding item to our query
+            if "itemID" == key:
+                #if we haven't added Items to our FROM clause
+                if "Items" not in queryBuilder['FROM']:
+                    #add it in
+                    queryBuilder['FROM'].append('Items')
+                #append to our current WHERE clause the itemID, using $itemID for query vars
+                queryBuilder['WHERE'].append('Items.itemID = $itemID')
+            elif "userID" == key:
+                #we can get userID from Items table, no need to use Users
+                if "Items" not in queryBuilder['FROM']:
+                    #add it in
+                    queryBuilder['FROM'].append('Items')  
+                #this query needs to handle two case:
+                #   case 1: no itemID is searched so we must display all items by this user
+                #   case 2: we are given itemID so the user must be a seller of the item
+                #since we select from items, we can add join users with items on userID-SellerUserID
+                #This will account for having an item search or not.
+                #we can achieve this with a nested subquery
+                queryBuilder['WHERE'].append('EXISTS (SELECT U.userID FROM Users U WHERE U.userID = $userID AND Items.Seller_UserID = U.userID)')
+            elif "minPrice" == key:
+                #this follow similar logic as itemID, simple WHERE clause addition
+                if "Items" not in queryBuilder['FROM']:
+                    queryBuilder['FROM'].append('Items')
+                queryBuilder['WHERE'].append('Items.Currently >= $minPrice')
+            elif "maxPrice" == key:
+                #same logic as minPrice
+                if "Items" not in queryBuilder['FROM']:
+                    queryBuilder['FROM'].append('Items')
+                queryBuilder['WHERE'].append('Items.Currently <= $maxPrice')
+            elif "status" == key:
+                #the status of our bid is determined by the current time of the system
+                time = string_to_time(sqlitedb.getTime())
+                #again, we will need Items table if it hasn't been added already
+                if "Items" not in queryBuilder['FROM']:
+                    queryBuilder['FROM'].append('Items')
+                #since status was the key, our values are one of four choices corresponding
+                #to the input options in the form
+                if value == "open":
+                    #to be open, the time must be before it ends, after it starts, and currently must be less than the buy_price
+                    queryBuilder['WHERE'].append('Items.Started<' + time + 'AND Items.Ends>'+ time + 'AND Currently < Buy_Price')
+                elif value == "close":
+                    #to be closed, must be after ends or currently >= buy price
+                    queryBuilder['WHERE'].append('Items.Ends < ' + time + 'OR Currently >= Buy_Price')
+                elif value == "notStarted":
+                    #to be not stared, current time must be less than start time
+                    queryBuilder['WHERE'].append('Items.Started > ' + time)
+                #if we didn't execute any of the above statements, than the selected choice was all and
+                #that doesn't require any additions to the where clause
+            #------------end if/elif  key conditionals------------------#
+            #we have filtered and added a new variables to our query, we need to keep track of the keys
+            #that we used and add the values to our searchVars dictionary
+            searchVars[key] = value
+        
+    #------------end query building loop------------------#
+    #we now need to build the search string that we will use, we have our queryBuilder filled so we can use that 
+    #to determine what to add to our string
+    return buildQuery(queryBuilder)
+    
+
+
+def buildQuery(queryBuilder):
+    searchString = "SELECT"
+    #iterate through our select,from and where lists to add to the string
+    #just append values to select clause
+    for value in queryBuilder['SELECT']:
+        searchString = searchString + ' ' + value
+    #make sure from clause has elements to add
+    if len(queryBuilder['FROM'])!=0:
+        searchString = searchString + ' FROM'
+        #we need to put commas after our from attributes, to do this effectively, keep track of index of element
+        for index,value in enumerate(queryBuilder['FROM']):
+            if(index+1 != len(queryBuilder['FROM'])):
+                searchString = searchString + ' ' + value + ','
+            else:
+                searchString = searchString + ' ' + value
+    #make sure where clause has attributes in it
+    if len(queryBuilder['WHERE'])!=0:
+        searchString = searchString + ' WHERE'
+        #same idea as FROM but this time we need to use ANDS, all ORs are already inserted
+        for index,value in enumerate(queryBuilder['WHERE']):
+            if(index+1 != len(queryBuilder['WHERE'])):
+                searchString = searchString + ' ' + value + ' and'
+            else:
+                searchString = searchString + ' ' + value
+
+    return searchString
+
+
+    
 ###########################################################################################
 ##########################DO NOT CHANGE ANYTHING BELOW THIS LINE!##########################
 ###########################################################################################
