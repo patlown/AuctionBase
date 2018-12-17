@@ -168,11 +168,13 @@ class search:
         minPrice = post_params['minPrice']
         maxPrice = post_params['maxPrice']
         status = post_params['status']
+        itemDescription = post_params['itemDescription']
+        itemCategory = post_params['itemCategory']
 
         #prepare query
         #build dict for variables that will be used when querying
         searchVars = {}
-        query_string = formatSearch(itemID,userID,minPrice,maxPrice,status,searchVars)
+        query_string = formatSearch(itemID,userID,minPrice,maxPrice,itemDescription, itemCategory, status,searchVars)
         result = sqlitedb.search(query_string,searchVars)
 
         return render_template('search.html',search_result = result, search_params = searchVars)
@@ -186,10 +188,16 @@ class search:
         # print post_params
 
 #helper method for handling format of a search query
-def formatSearch(itemID, userID, minPrice, maxPrice,status,searchVars):
+# Made use of these sources for generating the SQL query:
+# https://codereview.stackexchange.com/questions/52370/idiomatic-way-to-construct-a-sql-insert-query-in-python
+# https://www.python-course.eu/sql_python.php
+# https://www.pythonlearn.com/html-008/cfbook015.html
+
+def formatSearch(itemID, userID, minPrice, maxPrice,itemDescription, itemCategory, status,searchVars):
 
     #build dict for storing and accessing user input
-    keys = {'itemID': itemID, 'userID': userID, 'minPrice':minPrice,'maxPrice':maxPrice, 'status':status}
+    keys = {'itemID': itemID, 'userID': userID, 'minPrice':minPrice,'maxPrice':maxPrice, 'status':status, 'itemDescription' : itemDescription, 'itemCategory':itemCategory}
+
     
     #query builder for adding keys to correct clause, will be used to build searchString
     queryBuilder = {'SELECT':['DISTINCT','*'],'FROM':[],'WHERE':[]}
@@ -231,6 +239,14 @@ def formatSearch(itemID, userID, minPrice, maxPrice,status,searchVars):
                 if "Items" not in queryBuilder['FROM']:
                     queryBuilder['FROM'].append('Items')
                 queryBuilder['WHERE'].append('Items.Currently <= $maxPrice')
+            elif "itemCategory" == key:
+                if "Items" not in queryBuilder['FROM']:
+                    queryBuilder['FROM'].append('Items')
+                queryBuilder['WHERE'].append('exists(select Categories.itemID from Categories where Categories.category = $itemCategory and Categories.itemID = Items.itemID)')
+            elif "itemDescription" == key:
+                if "Items" not in queryBuilder['FROM']:
+                    queryBuilder['FROM'].append('Items')
+                queryBuilder['WHERE'].append('Items.Description like $itemDescription')
             elif "status" == key:
                 #the status of our bid is determined by the current time of the system
                 #convert the current time to a string date that sql can evaluate
