@@ -1,7 +1,7 @@
 import web
 
 db = web.database(dbn='sqlite',
-        db='AuctionBase' 
+        db='AuctionBase.db' 
         #TODO: add your SQLite database filename
     )
 
@@ -85,10 +85,10 @@ def getAuctionWinner(itemID, price):
 
 
 def addBid(price,itemID,userID):
-    query_string = 'Insert into Bids values ($itemID,$userID,$price,$time)'
+    query_string = 'INSERT INTO Bids VALUES ($itemID,$userID,$price,$time)'
     t = transaction()
     try:
-        query(query_string,{'itemID':itemID, 'userID':userID, 'price':price, 'time': getTime()})
+        db.query(query_string,{'itemID':itemID, 'userID':userID, 'price':price, 'time': getTime()})
         result = True
     except Exception as e:
         t.rollback()

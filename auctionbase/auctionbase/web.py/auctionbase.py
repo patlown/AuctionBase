@@ -87,19 +87,19 @@ class select_item:
         item = sqlitedb.getItemById(itemID)
         bids = sqlitedb.getBid(itemID)
         categories  = sqlitedb.getCategories(itemID)
-
+        bidWinner = None
         if item['Ends'] > sqlitedb.getTime():
             if item['Buy_Price'] is not None and item['Currently'] < item['Buy_Price']:
                 isOpen = True
-
+        
         else:
             if item['Number_of_Bids'] != 0:
-                winner = sqlitedb.getAuctionWinner(itemID,item['Currently'])
+                bidWinner = sqlitedb.getAuctionWinner(itemID,item['Currently'])
             else:
-                winner = None
+                bidWinner = None
             isOpen = False
 
-        return render_template('item.html', bids = bids, categories = categories, item = item,winner = winner,isOpen = isOpen)
+        return render_template('item.html', bids = bids, categories = categories, item = item,winner = bidWinner,isOpen = isOpen)
 
 class select_time:
     # Aanother GET request, this time to the URL '/selecttime'
@@ -149,12 +149,13 @@ class add_bid:
         userID = post_params['userID']
         # TODO: this currently does not give much information on the error, we could add additional queries to check if the user exists, if the item exists, if the bid is closed
         # IDK if that is necessary, this currently works correctly otherwise
-        if sqlitedb.addBid(price,itemID,userID):
+        res = sqlitedb.addBid(price,itemID,userID)
+        if res:
             update_message = '(Thank you %s,Your bid of %s was offered on Item %s)' % (userID,price,itemID)
         else:
             update_message = 'Invalid Bid, Either UserID does not exist, ItemID does not exist, ItemID is closed or the price offered was less than current bid'
 
-        return render_template('add_bid.html',message = update_message)    
+        return render_template('add_bid.html',message = update_message,add_result = res)    
 
 class search:
     def GET(self):
