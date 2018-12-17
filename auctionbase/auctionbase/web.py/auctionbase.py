@@ -56,7 +56,8 @@ def render_template(template_name, **context):
 urls = ('/currtime', 'curr_time',
         '/selecttime', 'select_time',
         '/add_bid', 'add_bid',
-        '/search','search'
+        '/search','search',
+        '/item','select_item'
         # TODO: add additional URLs here
         # first parameter => URL, second parameter => class name
         )
@@ -72,6 +73,33 @@ class curr_time:
     def GET(self):
         current_time = sqlitedb.getTime()
         return render_template('curr_time.html', time = current_time)
+
+
+
+class select_item:
+    # render the blank auction page
+    def GET(self):
+        return render_template('item.html',item=None)
+    def POST(self):
+        post_params = web.input()
+        # get all relevant info
+        itemID = post_params['item_id']
+        item = sqlitedb.getItemById(itemID)
+        bids = sqlitedb.getBid(itemID)
+        categories  = sqlitedb.getCategories(itemID)
+
+        if item['Ends'] > sqlitedb.getTime():
+            if item['Buy_Price'] is not None and item['Currently'] < item['Buy_Price']:
+                isOpen = True
+
+        else:
+            if item['Number_of_Bids'] != 0:
+                winner = sqlitedb.getAuctionWinner(itemID,item['Currently'])
+            else:
+                winner = None
+            isOpen = False
+
+        return render_template('item.html', bids = bids, categories = categories, item = item,winner = winner,isOpen = isOpen)
 
 class select_time:
     # Aanother GET request, this time to the URL '/selecttime'

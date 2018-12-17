@@ -43,15 +43,46 @@ def getTime():
 # a given ID), this will throw an Exception!
 def getItemById(item_id):
     # TODO: rewrite this method to catch the Exception in case `result' is empty
-    query_string = 'select * from Items where item_ID = $itemID'
+    query_string = 'select * from Items where ItemID = $itemID'
     result = query(query_string, {'itemID': item_id})
-    return result[0]
+    try:
+        result[0]
+        return result[0]
+    except:
+        return None
 
 #sets the time to a time specified by the user on the /selecttime page
 # will not run if the time selected is before the current time
 def setTime(time):
     query_string = 'update CurrentTime set Time = $t'
     db.query(query_string, {'t': time})
+
+
+## the following three functions help us display relevant information to users
+#  when they do a search
+
+def getBid(itemID):
+    query_string = 'SELECT * FROM Bids WHERE ItemID = $itemID'
+    try:
+        return query(query_string,{'itemID' : itemID})
+    except:
+        return None
+
+def getCategories(itemID):
+    
+    query_string = 'select Category from Categories where ItemID = $item_id'
+    try:
+        return query(query_string, {'item_id': itemID})
+    except:
+        return None
+
+def getAuctionWinner(itemID, price):
+    query_string = 'select UserID FROM Bids WHERE Amount = $price AND ItemID = $item_id'
+    try:
+        return query(query_string,{'price':price, 'item_id' : itemID})
+    except:
+        return None
+
 
 def addBid(price,itemID,userID):
     query_string = 'Insert into Bids values ($itemID,$userID,$price,$time)'

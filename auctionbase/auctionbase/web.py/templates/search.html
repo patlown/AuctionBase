@@ -16,6 +16,14 @@
 	  <input type="text" name="userID" class="form-control" id="userID" />
 	</div>
 	<div class="form-group">
+	  <label for="itemCategory">Item Category</label>
+	  <input type="text" class="form-control" id="itemCategory" name="itemCategory" />
+	</div>
+	<div class="form-group">
+	  <label for="itemDescription">Item Description</label>
+	  <input type="text" class="form-control" id="itemDescription" name="itemDescription" />
+	</div>
+	<div class="form-group">
 	  <label for="minPrice">Min Price</label>
 	  <input type="text" name="minPrice" class="form-control" id="minPrice" />
 	</div>
@@ -36,16 +44,19 @@
 <ul>
 {% if search_result %}
 {% for result in search_result %}
-	{% for key in result %}
-		<div>
-			<span>{{ key|e }}</span>
-			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-			<span>{{ result[key]|e }}</span>
-		</div>
-  	{% endfor %}
-  	<div>--------</div>
-{% endfor %}
-{% else %}
+	<a onclick="document.getElementById('item{{loop.index}}').submit(); return false;">
+		<form id="item{{loop.index}}" method="POST" action="item" >
+	<input id="item-id" value="{{ result['ItemID'] }}" name = "item_id" class="btn btn-primary">
+		{% for key in result %}
+			<div>
+				<span>{{ key|e }}</span>
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<span>{{ result[key]|e }}</span>
+			</div>
+  		{% endfor %}
+  		<div>--------</div>
+	{% endfor %}
+	{% else %}
 <div>No results</div>
 {% endif %}
 </ul>
